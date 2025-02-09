@@ -1,6 +1,8 @@
-import sys
 import re
-from typing import NamedTuple, Callable
+import sys
+from typing import Callable, NamedTuple
+
+from colorize import Colorize
 
 HEADER = r"""
  ██████╗ █████╗ ██╗      ██████╗██╗   ██╗██╗      █████╗ ████████╗ ██████╗ ██████╗
@@ -66,27 +68,20 @@ def main() -> None:
 
     print(HEADER)
     print(
-        "Created by "
-        + "\033[1;38;5;220m"  # bold, 256 pink fg
-        + "Nic"
-        + "\033[0m"  # reset all
-        + ", the strongest programmer of the modern era"
+        "Created by",
+        Colorize("Nic").bold().color256(220) + ",",
+        "the strongest sorcerer of the modern era.",
     )
     print(
-        "\033[3m"  # italic
-        + "To exit the program, press "
-        + "\033[1;23;38;5;0;48;5;255m"  # bold, reset italic, 256 black fg, 256 white bg  # noqa: E501
-        + "CTRL+C"
-        + "\033[3;39;49m"  # italic, reset fg, reset bg
-        + "."
-        + "\033[0m"  # reset all
+        Colorize("To exit the program, press").italic(),
+        Colorize("CTRL+C").bold().color256(0).on_color256(255),
     )
 
     try:
         start_calculator_loop()
     except KeyboardInterrupt:
         print()
-        print("Thank you for playing. Bye!")
+        print("Thank you for playing. Goodbye!")
         sys.exit(0)
 
 
@@ -97,18 +92,8 @@ def start_calculator_loop() -> None:
         display_separator()
 
         if previous_calculation != "":
-            print(
-                "\033[1m"  # bold
-                + "Previous calculation"
-                + "\033[0m"  # reset all
-                + ":"
-            )
-            print(
-                "  "
-                + "\033[32m"  # green
-                + previous_calculation
-                + "\033[0m"  # reset all
-            )
+            print(Colorize("Previous calculation").bold() + ":")
+            print(Colorize(f"  {previous_calculation}").green())
             print()
 
         display_operations()
@@ -116,7 +101,7 @@ def start_calculator_loop() -> None:
 
         print(f"Total: {total}")
         while 1:
-            response = get_input("Please select an operation")
+            response = get_input("Please select an operation").strip()
 
             if not is_valid_operation(response):
                 print_error("Whoops... that's not a valid option!")
@@ -139,35 +124,43 @@ def start_calculator_loop() -> None:
             continue
 
         while 1:
-            response = get_input(
-                "Please provide a space-separated list of values."
-            )
+            while 1:
+                response = get_input(
+                    "Please provide a space-separated list of values."
+                )
+                response = response.strip()
 
-            if response == "":
-                print_error("Please provide at least one value.")
+                if response == "":
+                    print_error("Please provide at least one value.")
+                    continue
+
+                break
+
+            values_raw = response.split(sep=" ")
+
+            values = []
+            errors = []
+
+            for value in values_raw:
+                if not (value.isnumeric() or is_float(value)):
+                    errors.append(value)
+                    continue
+
+                if value.isdigit():
+                    values.append(int(value))
+                elif is_float(value):
+                    values.append(float(value))
+                else:
+                    raise AssertionError("unreachable")
+
+            if len(errors) > 0:
+                print_error(f"discarding invalid values: {", ".join(errors)}")
+
+            if key.lower() == "divide" and 0 in values:
+                print_error("divide by zero... you know you can't do that!")
                 continue
 
             break
-
-        values_raw = response.strip().split(sep=" ")
-
-        values = []
-        errors = []
-
-        for value in values_raw:
-            if not (value.isnumeric() or is_float(value)):
-                errors.append(value)
-                continue
-
-            if value.isdigit():
-                values.append(int(value))
-            elif is_float(value):
-                values.append(float(value))
-            else:
-                raise AssertionError("unreachable")
-
-        if len(errors) > 0:
-            print_error(f"discarding invalid values: {", ".join(errors)}")
 
         total_before = total
         operation.handler(*values)
@@ -187,13 +180,7 @@ def display_operations() -> None:
     valid_operations = OPERATIONS.keys()
 
     for i, operation in enumerate(valid_operations, start=1):
-        print(
-            "  "
-            + "\033[38;5;219m"  # 256 pink fg
-            + str(i)
-            + "\033[0m"  # reset all
-            + f" {operation}"
-        )
+        print("  " + Colorize(str(i)).color256(219), operation)
 
 
 def is_valid_operation(response: str, /) -> bool:
@@ -206,9 +193,7 @@ def is_valid_operation(response: str, /) -> bool:
 
 def display_separator() -> None:
     print()
-    print("\033[2m", end="")  # dim
-    print("".center(80, "="))
-    print("\033[0m", end="")  # reset all
+    print(Colorize("".center(80, "=")).dim())
     print()
 
 
@@ -218,30 +203,17 @@ def is_float(value: str, /) -> bool:
 
 
 def print_error(text: str) -> None:
-    print(
-        "\033[1;31m"  # bold, red fg
-        + "error"
-        + "\033[0m"  # reset all
-        + ": "
-        + text
-    )
-
-
-def print_hint(text: str) -> None:
-    print("\033[1;32mhint\033[0m:", text)
+    print(Colorize("error").bold().red() + ":", text)
 
 
 def get_input(prompt: str) -> str:
     print(
-        "\033[1;36m"  # bold, cyan fg
-        + "* "
-        + "\033[39m"  # reset fg
-        + prompt
-        + "\033[0m"  # reset all
+        Colorize("*").bold().cyan(),
+        Colorize(prompt).bold(),
     )
     response = input("> ")
     print()
-    return response.strip()
+    return response
 
 
 if __name__ == "__main__":
